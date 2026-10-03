@@ -108,7 +108,7 @@ void CaptureMemory::PointedToByContext(const CPUContext& context,
       MaybeCaptureMemoryAround(delegate, context.arm->regs[i]);
     }
   }
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
   for (size_t i = 0; i < base::size(context.mipsel->regs); ++i) {
     MaybeCaptureMemoryAround(delegate, context.mipsel->regs[i]);
   }

@@ -131,7 +131,8 @@ const char* CallInterfaceDescriptor::DebugName() const {
   return "";
 }
 
-#if !defined(V8_TARGET_ARCH_MIPS) && !defined(V8_TARGET_ARCH_MIPS64)
+#if !defined(V8_TARGET_ARCH_MIPS) && !defined(V8_TARGET_ARCH_MIPS64) && \
+    !defined(V8_TARGET_ARCH_LOONG64)
 bool CallInterfaceDescriptor::IsValidFloatParameterRegister(Register reg) {
   return true;
 }
@@ -397,7 +398,8 @@ void WasmFloat64ToNumberDescriptor::InitializePlatformSpecific(
 }
 #endif  // !V8_TARGET_ARCH_IA32
 
-#if !defined(V8_TARGET_ARCH_MIPS) && !defined(V8_TARGET_ARCH_MIPS64)
+#if !defined(V8_TARGET_ARCH_MIPS) && !defined(V8_TARGET_ARCH_MIPS64) && \
+    !defined(V8_TARGET_ARCH_LOONG64)
 void WasmI32AtomicWait32Descriptor::InitializePlatformSpecific(
     CallInterfaceDescriptorData* data) {
   DefaultInitializePlatformSpecific(data, kParameterCount);

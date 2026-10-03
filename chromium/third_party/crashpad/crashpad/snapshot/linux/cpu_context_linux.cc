@@ -19,7 +19,7 @@
 
 #include <limits>
 
-#include "base/logging.h"
+//#include "base/logging.h"
 
 namespace crashpad {
 namespace internal {
@@ -246,8 +246,8 @@ void InitializeCPUContextARM64_NoFloatingPoint(
   // https://elixir.bootlin.com/linux/latest/source/arch/arm64/include/uapi/asm/ptrace.h
   if (thread_context.pstate >
       std::numeric_limits<decltype(context->spsr)>::max()) {
-    LOG(WARNING) << "pstate truncation: we only expect the SPSR bits to be set "
-                    "in the pstate";
+  //  LOG(WARNING) << "pstate truncation: we only expect the SPSR bits to be set "
+  //                  "in the pstate";
   }
   context->spsr = static_cast<decltype(context->spsr)>(thread_context.pstate);
 

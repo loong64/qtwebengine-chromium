@@ -37,7 +37,7 @@
 #include <sys/ioctl.h>
 #include <sys/ptrace.h>
 #if defined(OS_LINUX) && !defined(OS_CHROMEOS) && !defined(__arm__) && \
-    !defined(__aarch64__) && !defined(PTRACE_GET_THREAD_AREA)
+    !defined(__aarch64__) && !defined(__loongarch__) && !defined(PTRACE_GET_THREAD_AREA)
 // Also include asm/ptrace-abi.h since ptrace.h in older libc (for instance
 // the one in Ubuntu 16.04 LTS) is missing PTRACE_GET_THREAD_AREA.
 // asm/ptrace-abi.h doesn't exist on arm32 and PTRACE_GET_THREAD_AREA isn't
@@ -406,11 +406,13 @@ ResultExpr RestrictPrlimitToGetrlimit(pid_t target_pid) {
 ResultExpr RestrictPtrace() {
   const Arg<int> request(0);
   return Switch(request).CASES((
-#if !defined(__aarch64__)
+#if !defined(__aarch64__) && !defined(__mips64__)
         PTRACE_GETREGS,
         PTRACE_GETFPREGS,
 #if defined(TRACE_GET_THREAD_AREA)
+#if !defined(__loongarch64)
         PTRACE_GET_THREAD_AREA,
+#endif
 #endif
 #endif
 #if defined(__arm__) && defined (PTRACE_GETVFPREGS)

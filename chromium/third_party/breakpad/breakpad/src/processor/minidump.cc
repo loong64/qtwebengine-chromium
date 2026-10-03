@@ -96,6 +96,8 @@ bool IsContextSizeUnique(uint32_t context_size) {
     num_matching_contexts++;
   if (context_size == sizeof(MDRawContextMIPS))
     num_matching_contexts++;
+  if (context_size == sizeof(MDRawContextLOONG64))
+    num_matching_contexts++;
   return num_matching_contexts == 1;
 }
 
@@ -1157,6 +1159,11 @@ bool MinidumpContext::Read(uint32_t expected_size) {
         break;
       }
 
+      case MD_CONTEXT_LOONG64: {
+        // TODO:LOONG64
+        BPLOG(ERROR) << "To be implemented on loongarch";
+        break;
+      }
       default: {
         // Unknown context type - Don't log as an error yet. Let the
         // caller work that out.
@@ -1166,6 +1173,7 @@ bool MinidumpContext::Read(uint32_t expected_size) {
         break;
       }
     }
+
     SetContextFlags(context_flags);
   }
 

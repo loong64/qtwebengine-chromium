@@ -114,6 +114,16 @@ TEST(AndroidUContext, GRegsOffset) {
 
   ASSERT_EQ(static_cast<size_t>(MCONTEXT_FPC_CSR),
             offsetof(ucontext_t,uc_mcontext.fpc_csr));
+#elif defined(__loongarch__)
+  ASSERT_EQ(static_cast<size_t>(MCONTEXT_GREGS_OFFSET),
+            offsetof(ucontext_t, uc_mcontext.__gregs));
+
+  // PC for loongarch is not part of gregs.
+  ASSERT_EQ(static_cast<size_t>(MCONTEXT_PC_OFFSET),
+            offsetof(ucontext_t, uc_mcontext.__pc));
+
+  ASSERT_EQ(static_cast<size_t>(MCONTEXT_FPREGS_OFFSET),
+            offsetof(ucontext_t, uc_mcontext.__fpregs));
 #elif defined(__x86_64__)
 
   COMPILE_ASSERT_EQ(static_cast<size_t>(MCONTEXT_GREGS_OFFSET),

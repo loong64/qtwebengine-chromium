@@ -352,6 +352,28 @@ struct CPUContextMIPS64 {
   uint64_t fir;
 };
 
+struct CPUContextLOONG64 {
+  uint64_t regs[32];
+  uint64_t mdlo;
+  uint64_t mdhi;
+  uint64_t cp0_epc;
+  uint64_t cp0_badvaddr;
+  uint64_t cp0_status;
+  uint64_t cp0_cause;
+  uint64_t hi[3];
+  uint64_t lo[3];
+  uint64_t dsp_control;
+  union {
+    double dregs[32];
+    struct {
+      float _fp_fregs;
+      uint32_t _fp_pad;
+    } fregs[32];
+  } fpregs;
+  uint64_t fpcsr;
+  uint64_t fir;
+};
+
 //! \brief A context structure capable of carrying the context of any supported
 //!     CPU architecture.
 struct CPUContext {
@@ -382,6 +404,7 @@ struct CPUContext {
     CPUContextARM64* arm64;
     CPUContextMIPS* mipsel;
     CPUContextMIPS64* mips64;
+    CPUContextLOONG64* loong64;
   };
 };
 

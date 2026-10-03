@@ -66,6 +66,8 @@ void* GetProgramCounter(void* vuc) {
 #elif defined(__x86_64__)
     if (16 < ABSL_ARRAYSIZE(context->uc_mcontext.gregs))
       return reinterpret_cast<void*>(context->uc_mcontext.gregs[16]);
+#elif defined(__loongarch__)
+    return reinterpret_cast<void*>(context->uc_mcontext.__pc);
 #else
 #error "Undefined Architecture."
 #endif

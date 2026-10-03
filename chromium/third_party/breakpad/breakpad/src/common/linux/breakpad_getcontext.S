@@ -399,6 +399,15 @@ NESTED (breakpad_getcontext, FRAME_SIZE, ra)
 END (breakpad_getcontext)
 #endif // _MIPS_SIM == _ABIO32
 
+#elif defined(__loongarch__)
+  .text
+  .global breakpad_getcontext
+  .hidden breakpad_getcontext
+  .align 4
+  .type breakpad_getcontext, @function
+
+breakpad_getcontext:
+
 #elif defined(__x86_64__)
 /* The x64 implementation of breakpad_getcontext was derived in part
    from the implementation of libunwind which requires the following

@@ -46,6 +46,14 @@ constexpr RegList kLiftoffAssemblerGpCacheRegs =
 constexpr RegList kLiftoffAssemblerFpCacheRegs = DoubleRegister::ListOf(
     f0, f2, f4, f6, f8, f10, f12, f14, f16, f18, f20, f22, f24, f26);
 
+#elif V8_TARGET_ARCH_LOONG64
+/*todo*/
+constexpr RegList kLiftoffAssemblerGpCacheRegs =
+    Register::ListOf(a0, a1, a2, a3, a4, a5, a6, a7, t0, t1, t2, s7);
+
+constexpr RegList kLiftoffAssemblerFpCacheRegs = DoubleRegister::ListOf(
+    f0, f2, f4, f6, f8, f10, f12, f14, f16, f18, f20, f22, f24, f26);
+
 #elif V8_TARGET_ARCH_ARM
 
 // r7: cp, r10: root, r11: fp, r12: ip, r13: sp, r14: lr, r15: pc.
@@ -90,7 +98,7 @@ constexpr Condition kUnsignedLessEqual = below_equal;
 constexpr Condition kUnsignedGreaterThan = above;
 constexpr Condition kUnsignedGreaterEqual = above_equal;
 
-#elif V8_TARGET_ARCH_MIPS || V8_TARGET_ARCH_MIPS64
+#elif V8_TARGET_ARCH_MIPS || V8_TARGET_ARCH_MIPS64 || V8_TARGET_ARCH_LOONG64
 
 constexpr Condition kEqual = eq;
 constexpr Condition kUnequal = ne;

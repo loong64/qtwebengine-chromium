@@ -111,6 +111,7 @@ Possible values
   - "arm"
   - "arm64"
   - "mipsel"
+  - "loong64"
 )";
 
 const char kTargetName[] = "target_name";

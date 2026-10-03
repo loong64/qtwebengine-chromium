@@ -1618,12 +1618,14 @@ TEST(BrokerProcess, IsSyscallAllowed) {
         __NR_readlink
 #endif
        }},
+#if !defined(__loongarch64)
       {COMMAND_RENAME,
        {__NR_renameat,
 #if defined(__NR_rename) && !defined(OS_ANDROID)
         __NR_rename
 #endif
        }},
+#endif
       {COMMAND_UNLINK,
        {__NR_unlinkat,
 #if defined(__NR_unlink) && !defined(OS_ANDROID)

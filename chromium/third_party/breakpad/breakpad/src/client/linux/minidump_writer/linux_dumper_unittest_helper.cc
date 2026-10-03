@@ -51,6 +51,9 @@
 #define TID_PTR_REGISTER "rcx"
 #elif defined(__mips__)
 #define TID_PTR_REGISTER "$1"
+#elif defined(__loongarch__)
+// TODO:LOONG64 Check TID_PTR_REGISTER value
+#define TID_PTR_REGISTER "$7"
 #else
 #error This test has not been ported to this platform.
 #endif

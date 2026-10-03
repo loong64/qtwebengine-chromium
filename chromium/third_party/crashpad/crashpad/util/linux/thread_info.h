@@ -67,7 +67,7 @@ union ThreadContext {
     uint32_t pc;
     uint32_t cpsr;
     uint32_t orig_r0;
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
     // Reflects output format of static int gpr32_get(), defined in
     // arch/mips/kernel/ptrace.c in kernel source
     uint32_t padding0_[6];
@@ -122,7 +122,7 @@ union ThreadContext {
     uint64_t sp;
     uint64_t pc;
     uint64_t pstate;
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
     // Reflects output format of static int gpr64_get(), defined in
     // arch/mips/kernel/ptrace.c in kernel source
     uint64_t regs[32];
@@ -141,13 +141,13 @@ union ThreadContext {
   using NativeThreadContext = user_regs_struct;
 #elif defined(ARCH_CPU_ARMEL)
   using NativeThreadContext = user_regs;
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
 // No appropriate NativeThreadsContext type available for MIPS
 #else
 #error Port.
 #endif  // ARCH_CPU_X86_FAMILY || ARCH_CPU_ARM64
 
-#if !defined(ARCH_CPU_MIPS_FAMILY)
+#if !defined(ARCH_CPU_MIPS_FAMILY) && !defined(ARCH_CPU_LOONGARCH_FAMILY)
 #if defined(ARCH_CPU_32_BITS)
   static_assert(sizeof(t32_t) == sizeof(NativeThreadContext), "Size mismatch");
 #else  // ARCH_CPU_64_BITS
@@ -209,7 +209,7 @@ union FloatContext {
 
     bool have_fpregs;
     bool have_vfp;
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
     // Reflects data format filled by ptrace_getfpregs() in
     // arch/mips/kernel/ptrace.c
     struct {
@@ -246,7 +246,7 @@ union FloatContext {
     uint32_t fpsr;
     uint32_t fpcr;
     uint8_t padding[8];
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
     // Reflects data format filled by ptrace_getfpregs() in
     // arch/mips/kernel/ptrace.c
     double fpregs[32];
@@ -278,7 +278,7 @@ union FloatContext {
 #endif
 #elif defined(ARCH_CPU_ARM64)
   static_assert(sizeof(f64) == sizeof(user_fpsimd_struct), "Size mismatch");
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
 // No appropriate floating point context native type for available MIPS.
 #else
 #error Port.

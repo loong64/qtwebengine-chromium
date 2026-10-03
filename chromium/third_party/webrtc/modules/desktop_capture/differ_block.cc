@@ -30,8 +30,8 @@ bool VectorDifference(const uint8_t* image1, const uint8_t* image2) {
   static bool (*diff_proc)(const uint8_t*, const uint8_t*) = nullptr;
 
   if (!diff_proc) {
-#if defined(WEBRTC_ARCH_ARM_FAMILY) || defined(WEBRTC_ARCH_MIPS_FAMILY)
-    // For ARM and MIPS processors, always use C version.
+#if defined(WEBRTC_ARCH_ARM_FAMILY) || defined(WEBRTC_ARCH_MIPS_FAMILY) || defined(WEBRTC_ARCH_LOONG64)
+    // For ARM, MIPS and LOONG64 processors, always use C version.
     // TODO(hclam): Implement a NEON version.
     diff_proc = &VectorDifference_C;
 #else

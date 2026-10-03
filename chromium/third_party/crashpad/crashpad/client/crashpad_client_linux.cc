@@ -160,7 +160,9 @@ class SignalHandler {
     exception_information_.context_address =
         FromPointerCast<decltype(exception_information_.context_address)>(
             context);
+#if !defined(__loongarch__)
     exception_information_.thread_id = sys_gettid();
+#endif
 
     ScopedPrSetDumpable set_dumpable(false);
     HandleCrashImpl();
@@ -240,7 +242,9 @@ class LaunchAtCrashHandler : public SignalHandler {
   }
 
   void HandleCrashImpl() override {
+#if !defined(__loongarch__)
     ScopedPrSetPtracer set_ptracer(sys_getpid(), /* may_log= */ false);
+#endif
 
     pid_t pid = fork();
     if (pid < 0) {

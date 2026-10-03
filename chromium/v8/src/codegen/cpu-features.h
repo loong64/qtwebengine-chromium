@@ -50,6 +50,9 @@ enum CpuFeature {
   MIPSr6,
   MIPS_SIMD,  // MSA instructions
 
+#elif V8_TARGET_ARCH_LOONG64
+  FPU,  // TODO
+
 #elif V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
   FPU,
   FPR_GPR_MOV,

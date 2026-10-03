@@ -48,7 +48,7 @@ constexpr ALWAYS_INLINE int PageAllocationGranularityShift() {
   // compiled for 64kB are likely to work on 4kB systems, 64kB is a good choice
   // here.
   return 16;  // 64kB
-#elif defined(_MIPS_ARCH_LOONGSON)
+#elif defined(_MIPS_ARCH_LOONGSON) || defined(__loongarch__)
   return 14;  // 16kB
 #else
   return 12;  // 4kB

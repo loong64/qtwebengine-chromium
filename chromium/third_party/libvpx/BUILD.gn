@@ -344,6 +344,8 @@ static_library("bundled_libvpx") {
     } else {
       sources = libvpx_srcs_arm64
     }
+  } else if (current_cpu == "loong64") {
+    sources = libvpx_srcs_generic
   }
 
   configs -= [ "//build/config/compiler:chromium_code" ]

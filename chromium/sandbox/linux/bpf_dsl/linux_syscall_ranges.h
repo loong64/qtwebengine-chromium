@@ -45,11 +45,20 @@
 #elif defined(ARCH_CPU_MIPS_FAMILY) && defined(ARCH_CPU_64_BITS)
 
 #include <asm/unistd.h>  // for __NR_64_Linux and __NR_64_Linux_syscalls
+#define __NR_64_Linux 5000
+#define __NR_64_Linux_syscalls 435
 #define MIN_SYSCALL         __NR_64_Linux
 #define MAX_PUBLIC_SYSCALL  (MIN_SYSCALL + __NR_64_Linux_syscalls)
 #define MAX_SYSCALL         MAX_PUBLIC_SYSCALL
 
 #elif defined(__aarch64__)
+
+#include <asm-generic/unistd.h>
+#define MIN_SYSCALL 0u
+#define MAX_PUBLIC_SYSCALL __NR_syscalls
+#define MAX_SYSCALL MAX_PUBLIC_SYSCALL
+
+#elif defined(__loongarch64)
 
 #include <asm-generic/unistd.h>
 #define MIN_SYSCALL 0u

@@ -172,6 +172,18 @@
 #define ARCH_CPU_32_BITS 1
 #define ARCH_CPU_BIG_ENDIAN 1
 #endif
+#elif defined(__loongarch__)
+#if defined(__LP64__)
+#define ARCH_CPU_LOONGARCH_FAMILY 1
+#define ARCH_CPU_LOONGARCH64 1
+#define ARCH_CPU_64_BITS 1
+#define ARCH_CPU_LITTLE_ENDIAN 1
+#else
+#define ARCH_CPU_LOONGARCH_FAMILY 1
+#define ARCH_CPU_LOONGARCH 1
+#define ARCH_CPU_32_BITS 1
+#define ARCH_CPU_LITTLE_ENDIAN 1
+#endif
 #else
 #error Please add support for your architecture in build_config.h
 #endif

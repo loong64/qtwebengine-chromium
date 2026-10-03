@@ -28,6 +28,8 @@ namespace internal {
 DEFINE_LAZY_LEAKY_OBJECT_GETTER(Simulator::GlobalMonitor,
                                 Simulator::GlobalMonitor::Get)
 
+// #define PRINT_SIM_LOG
+
 // Util functions.
 inline bool HaveSameSign(int64_t a, int64_t b) { return ((a ^ b) >= 0); }
 
@@ -56,6 +58,17 @@ static int64_t MultiplyHighSigned(int64_t u, int64_t v) {
 
   return u1 * v1 + w2 + (w1 >> 32);
 }
+
+#ifdef PRINT_SIM_LOG
+inline void printf_instr(const char* _Format, ...) {
+  va_list varList;
+  va_start(varList, _Format);
+  vprintf(_Format, varList);
+  va_end(varList);
+}
+#else
+#define printf_instr(...)
+#endif
 
 // This macro provides a platform independent use of sscanf. The reason for
 // SScanF not being implemented in a platform independent was through
@@ -2195,6 +2208,7 @@ void Simulator::SoftwareInterrupt() {
   uint32_t code = (func == BREAK) ? instr_.Bits(25, 6) : -1;
   // We first check if we met a call_rt_redirected.
   if (instr_.InstructionBits() == rtCallRedirInstr) {
+    printf_instr("Simulator::SoftwareInterrupt: BREAK 0xFFFFF\n");
     Redirection* redirection = Redirection::FromInstruction(instr_.instr());
 
     int64_t* stack_pointer = reinterpret_cast<int64_t*>(get_register(sp));
@@ -2723,6 +2737,9 @@ void Simulator::DecodeTypeRegisterSRsType() {
                                                KeepSign::yes, fs));
       break;
     case SQRT_S:
+      printf_instr("sqrt_s\t %s: %016f, %s: %016f\n",
+                   FPURegisters::Name(fd_reg()), fd,
+                   FPURegisters::Name(fs_reg()), fs);
       SetFPUFloatResult(
           fd_reg(),
           FPUCanonalizeOperation([](float src) { return std::sqrt(src); }, fs));
@@ -3115,6 +3132,10 @@ void Simulator::DecodeTypeRegisterDRsType() {
               [](double lhs, double rhs) { return lhs + rhs; }, fs, ft));
       break;
     case SUB_D:
+      printf_instr("sub_d\t %s: %016f, %s: %016f, %s: %016f\n",
+                   FPURegisters::Name(fd_reg()), fd,
+                   FPURegisters::Name(fs_reg()), fs,
+                   FPURegisters::Name(ft_reg()), ft);
       SetFPUDoubleResult(
           fd_reg(),
           FPUCanonalizeOperation(
@@ -3381,6 +3402,10 @@ void Simulator::DecodeTypeRegisterWRsType() {
   int64_t alu_out = 0x12345678;
   switch (instr_.FunctionFieldRaw()) {
     case CVT_S_W:  // Convert word to float (single).
+      printf_instr(
+          "CVT_S_W \t %s: %016f, %s: %016x\n", FPURegisters::Name(fd_reg()),
+          get_fpu_register_float(fd_reg()), FPURegisters::Name(fs_reg()),
+          get_fpu_register_signed_word(fs_reg()));
       alu_out = get_fpu_register_signed_word(fs_reg());
       SetFPUFloatResult(fd_reg(), static_cast<float>(alu_out));
       break;
@@ -3476,6 +3501,10 @@ void Simulator::DecodeTypeRegisterLRsType() {
       SetFPUDoubleResult(fd_reg(), static_cast<double>(i64));
       break;
     case CVT_S_L:
+      printf_instr("CVT_S_L \t %s: %016f, %s: %016x\n",
+                   FPURegisters::Name(fd_reg()),
+                   get_fpu_register_float(fd_reg()),
+                   FPURegisters::Name(fs_reg()), get_fpu_register(fs_reg()));
       i64 = get_fpu_register(fs_reg());
       SetFPUFloatResult(fd_reg(), static_cast<float>(i64));
       break;
@@ -3569,11 +3598,17 @@ void Simulator::DecodeTypeRegisterCOP1() {
       SetResult(rt_reg(), FCSR_);
       break;
     case MFC1:
+      printf_instr("MFC1 \t %s: %016lx, %s: %016f\n", Registers::Name(rt_reg()),
+                   rt(), FPURegisters::Name(fs_reg()),
+                   get_fpu_register_float(fs_reg()));
       set_register(rt_reg(),
                    static_cast<int64_t>(get_fpu_register_word(fs_reg())));
       TraceRegWr(get_register(rt_reg()), WORD_DWORD);
       break;
     case DMFC1:
+      printf_instr(
+          "DMFC1 \t %s: %016lx, %s: %016f\n", Registers::Name(rt_reg()), rt(),
+          FPURegisters::Name(fs_reg()), get_fpu_register_double(fs_reg()));
       SetResult(rt_reg(), get_fpu_register(fs_reg()));
       break;
     case MFHC1:
@@ -3593,12 +3628,18 @@ void Simulator::DecodeTypeRegisterCOP1() {
       break;
     }
     case MTC1:
+      printf_instr(
+          "MTC1 \t %s: %016f, %s: %016lx\n", FPURegisters::Name(fs_reg()),
+          get_fpu_register_float(fs_reg()), Registers::Name(rt_reg()), rt());
       // Hardware writes upper 32-bits to zero on mtc1.
       set_fpu_register_hi_word(fs_reg(), 0);
       set_fpu_register_word(fs_reg(), static_cast<int32_t>(rt()));
       TraceRegWr(get_fpu_register(fs_reg()), FLOAT_DOUBLE);
       break;
     case DMTC1:
+      printf_instr(
+          "DMTC1 \t %s: %016f, %s: %016lx\n", FPURegisters::Name(fs_reg()),
+          get_fpu_register_float(fs_reg()), Registers::Name(rt_reg()), rt());
       SetFPUResult2(fs_reg(), rt());
       break;
     case MTHC1:
@@ -3683,6 +3724,7 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
     case JR: {
       int64_t next_pc = rs();
       int64_t current_pc = get_pc();
+      printf_instr("JALR\t %s: %016lx\n", Registers::Name(rs_reg()), rs());
       Instruction* branch_delay_instr =
           reinterpret_cast<Instruction*>(current_pc + kInstrSize);
       BranchDelayInstructionDecode(branch_delay_instr);
@@ -3694,6 +3736,8 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       int64_t next_pc = rs();
       int64_t current_pc = get_pc();
       int32_t return_addr_reg = rd_reg();
+      printf_instr("JALR\t %s: %016lx, %s: %016lx\n", Registers::Name(rd_reg()),
+                   get_register(rd_reg()), Registers::Name(rs_reg()), rs());
       Instruction* branch_delay_instr =
           reinterpret_cast<Instruction*>(current_pc + kInstrSize);
       BranchDelayInstructionDecode(branch_delay_instr);
@@ -3703,21 +3747,36 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       break;
     }
     case SLL:
+      printf_instr("SLL\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), sa());
       SetResult(rd_reg(), static_cast<int32_t>(rt()) << sa());
       break;
     case DSLL:
+      printf_instr("DSLL\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), sa());
       SetResult(rd_reg(), rt() << sa());
       break;
     case DSLL32:
+      printf_instr("DSLL32\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), sa());
       SetResult(rd_reg(), rt() << sa() << 32);
       break;
     case SRL:
       if (rs_reg() == 0) {
+        printf_instr("SRL\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), sa());
         // Regular logical right shift of a word by a fixed number of
         // bits instruction. RS field is always equal to 0.
         // Sign-extend the 32-bit result.
         alu_out = static_cast<int32_t>(static_cast<uint32_t>(rt_u()) >> sa());
       } else if (rs_reg() == 1) {
+        printf_instr("ROTR\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), sa());
         // Logical right-rotate of a word by a fixed number of bits. This
         // is special case of SRL instruction, added in MIPS32 Release 2.
         // RS field is equal to 00001.
@@ -3731,11 +3790,17 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       break;
     case DSRL:
       if (rs_reg() == 0) {
+        printf_instr("DSRL\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), sa());
         // Regular logical right shift of a word by a fixed number of
         // bits instruction. RS field is always equal to 0.
         // Sign-extend the 64-bit result.
         alu_out = static_cast<int64_t>(rt_u() >> sa());
       } else if (rs_reg() == 1) {
+        printf_instr("DROTR\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), sa());
         // Logical right-rotate of a word by a fixed number of bits. This
         // is special case of SRL instruction, added in MIPS32 Release 2.
         // RS field is equal to 00001.
@@ -3747,11 +3812,17 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       break;
     case DSRL32:
       if (rs_reg() == 0) {
+        printf_instr("DSRL32\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), sa());
         // Regular logical right shift of a word by a fixed number of
         // bits instruction. RS field is always equal to 0.
         // Sign-extend the 64-bit result.
         alu_out = static_cast<int64_t>(rt_u() >> sa() >> 32);
       } else if (rs_reg() == 1) {
+        printf_instr("DROTR32\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), sa());
         // Logical right-rotate of a word by a fixed number of bits. This
         // is special case of SRL instruction, added in MIPS32 Release 2.
         // RS field is equal to 00001.
@@ -3763,26 +3834,51 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       SetResult(rd_reg(), alu_out);
       break;
     case SRA:
+      printf_instr("SRA\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), sa());
       SetResult(rd_reg(), (int32_t)rt() >> sa());
       break;
     case DSRA:
+      printf_instr("DSRA\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), sa());
       SetResult(rd_reg(), rt() >> sa());
       break;
     case DSRA32:
+      printf_instr("DSRA32\t %s: %016lx, %s: %016lx, sa: %02x\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), sa());
       SetResult(rd_reg(), rt() >> sa() >> 32);
       break;
     case SLLV:
+      printf_instr("SLLV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                   rs());
       SetResult(rd_reg(), (int32_t)rt() << rs());
       break;
     case DSLLV:
+      printf_instr("DSLLV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                   rs());
       SetResult(rd_reg(), rt() << rs());
       break;
     case SRLV:
       if (sa() == 0) {
+        printf_instr("SRLV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                     rs());
         // Regular logical right-shift of a word by a variable number of
         // bits instruction. SA field is always equal to 0.
         alu_out = static_cast<int32_t>((uint32_t)rt_u() >> rs());
       } else {
+        printf_instr("ROTRV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                     rs());
         // Logical right-rotate of a word by a variable number of bits.
         // This is special case od SRLV instruction, added in MIPS32
         // Release 2. SA field is equal to 00001.
@@ -3794,10 +3890,18 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       break;
     case DSRLV:
       if (sa() == 0) {
+        printf_instr("SRLV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                     rs());
         // Regular logical right-shift of a word by a variable number of
         // bits instruction. SA field is always equal to 0.
         alu_out = static_cast<int64_t>(rt_u() >> rs());
       } else {
+        printf_instr("DROTRV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                     Registers::Name(rd_reg()), get_register(rd_reg()),
+                     Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                     rs());
         // Logical right-rotate of a word by a variable number of bits.
         // This is special case od SRLV instruction, added in MIPS32
         // Release 2. SA field is equal to 00001.
@@ -3807,9 +3911,17 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       SetResult(rd_reg(), alu_out);
       break;
     case SRAV:
+      printf_instr("SRAV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                   rs());
       SetResult(rd_reg(), (int32_t)rt() >> rs());
       break;
     case DSRAV:
+      printf_instr("DSRAV\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rt_reg()), rt(), Registers::Name(rs_reg()),
+                   rs());
       SetResult(rd_reg(), rt() >> rs());
       break;
     case LSA: {
@@ -4018,6 +4130,10 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       break;
     case ADD:
     case DADD:
+      printf_instr("DADD\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       if (HaveSameSign(rs(), rt())) {
         if (rs() > 0) {
           if (rs() > (Registers::kMaxValue - rt())) {
@@ -4032,16 +4148,28 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       SetResult(rd_reg(), rs() + rt());
       break;
     case ADDU: {
+      printf_instr("ADDU\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       int32_t alu32_out = static_cast<int32_t>(rs() + rt());
       // Sign-extend result of 32bit operation into 64bit register.
       SetResult(rd_reg(), static_cast<int64_t>(alu32_out));
       break;
     }
     case DADDU:
+      printf_instr("DADDU\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), rs() + rt());
       break;
     case SUB:
     case DSUB:
+      printf_instr("DSUB\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       if (!HaveSameSign(rs(), rt())) {
         if (rs() > 0) {
           if (rs() > (Registers::kMaxValue + rt())) {
@@ -4056,30 +4184,62 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       SetResult(rd_reg(), rs() - rt());
       break;
     case SUBU: {
+      printf_instr("SUBU\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       int32_t alu32_out = static_cast<int32_t>(rs() - rt());
       // Sign-extend result of 32bit operation into 64bit register.
       SetResult(rd_reg(), static_cast<int64_t>(alu32_out));
       break;
     }
     case DSUBU:
+      printf_instr("DSUBU\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), rs() - rt());
       break;
     case AND:
+      printf_instr("AND\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), rs() & rt());
       break;
     case OR:
+      printf_instr("OR\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), rs() | rt());
       break;
     case XOR:
+      printf_instr("XOR\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), rs() ^ rt());
       break;
     case NOR:
+      printf_instr("NOR\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), ~(rs() | rt()));
       break;
     case SLT:
+      printf_instr("SLT\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), rs() < rt() ? 1 : 0);
       break;
     case SLTU:
+      printf_instr("SLTU\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       SetResult(rd_reg(), rs_u() < rt_u() ? 1 : 0);
       break;
     // Break and trap instructions.
@@ -4106,9 +4266,14 @@ void Simulator::DecodeTypeRegisterSPECIAL() {
       break;
     case SYNC:
       // TODO(palfia): Ignore sync instruction for now.
+      printf_instr("sync\n");
       break;
     // Conditional moves.
     case MOVN:
+      printf_instr("MOVN\t %s: %016lx, %s: %016lx, %s: %016lx\n",
+                   Registers::Name(rd_reg()), get_register(rd_reg()),
+                   Registers::Name(rs_reg()), rs(), Registers::Name(rt_reg()),
+                   rt());
       if (rt()) {
         SetResult(rd_reg(), rs());
       }
@@ -4173,6 +4338,9 @@ void Simulator::DecodeTypeRegisterSPECIAL3() {
       // Interpret sa field as 5-bit lsb of extract.
       uint16_t lsb = sa();
       uint16_t size = msbd + 1;
+      printf_instr("EXT\t %s: %016lx, %s: %016lx, pos: %d, size: %d\n",
+                   Registers::Name(rt_reg()), get_register(rt_reg()),
+                   Registers::Name(rs_reg()), rs(), lsb, size);
       uint64_t mask = (1ULL << size) - 1;
       alu_out = static_cast<int32_t>((rs_u() & (mask << lsb)) >> lsb);
       SetResult(rt_reg(), alu_out);
@@ -4184,6 +4352,9 @@ void Simulator::DecodeTypeRegisterSPECIAL3() {
       // Interpret sa field as 5-bit lsb of extract.
       uint16_t lsb = sa();
       uint16_t size = msbd + 1;
+      printf_instr("DEXT\t %s: %016lx, %s: %016lx, pos: %d, size: %d\n",
+                   Registers::Name(rt_reg()), get_register(rt_reg()),
+                   Registers::Name(rs_reg()), rs(), lsb, size);
       uint64_t mask = (size == 64) ? UINT64_MAX : (1ULL << size) - 1;
       alu_out = static_cast<int64_t>((rs_u() & (mask << lsb)) >> lsb);
       SetResult(rt_reg(), alu_out);
@@ -6553,6 +6724,7 @@ void Simulator::DecodeTypeImmediate() {
       [this, &next_pc, &execute_branch_delay_instruction](bool do_branch) {
         execute_branch_delay_instruction = true;
         int64_t current_pc = get_pc();
+        printf_instr("Offs16: %04x\n", instr_.Imm16Value());
         set_register(31, current_pc + 2 * kInstrSize);
         if (do_branch) {
           int16_t imm16 = instr_.Imm16Value();
@@ -6565,6 +6737,7 @@ void Simulator::DecodeTypeImmediate() {
   auto BranchHelper = [this, &next_pc,
                        &execute_branch_delay_instruction](bool do_branch) {
     execute_branch_delay_instruction = true;
+    printf_instr("Offs16: %04x\n", instr_.Imm16Value());
     int64_t current_pc = get_pc();
     if (do_branch) {
       int16_t imm16 = instr_.Imm16Value();
@@ -6601,6 +6774,7 @@ void Simulator::DecodeTypeImmediate() {
   auto BranchAndLinkCompactHelper = [this, &next_pc](bool do_branch, int bits) {
     int64_t current_pc = get_pc();
     CheckForbiddenSlot(current_pc);
+    printf_instr("Offs: %08x\n", instr_.ImmValue(bits));
     if (do_branch) {
       int32_t imm = instr_.ImmValue(bits);
       imm <<= 32 - bits;
@@ -6613,6 +6787,7 @@ void Simulator::DecodeTypeImmediate() {
   auto BranchCompactHelper = [this, &next_pc](bool do_branch, int bits) {
     int64_t current_pc = get_pc();
     CheckForbiddenSlot(current_pc);
+    printf_instr("Offs: %08x\n", instr_.ImmValue(bits));
     if (do_branch) {
       int32_t imm = instr_.ImmValue(bits);
       imm <<= 32 - bits;
@@ -6707,15 +6882,19 @@ void Simulator::DecodeTypeImmediate() {
     case REGIMM:
       switch (instr_.RtFieldRaw()) {
         case BLTZ:
+          printf_instr("BLTZ\t %s: %016lx, ", Registers::Name(rs_reg), rs);
           BranchHelper(rs < 0);
           break;
         case BGEZ:
+          printf_instr("BGEZ\t %s: %016lx, ", Registers::Name(rs_reg), rs);
           BranchHelper(rs >= 0);
           break;
         case BLTZAL:
+          printf_instr("BLTZAL\t %s: %016lx, ", Registers::Name(rs_reg), rs);
           BranchAndLinkHelper(rs < 0);
           break;
         case BGEZAL:
+          printf_instr("BGEZAL\t %s: %016lx, ", Registers::Name(rs_reg), rs);
           BranchAndLinkHelper(rs >= 0);
           break;
         case DAHI:
@@ -6732,9 +6911,13 @@ void Simulator::DecodeTypeImmediate() {
     // When comparing to zero, the encoding of rt field is always 0, so we don't
     // need to replace rt with zero.
     case BEQ:
+      printf_instr("BEQ\t %s: %016lx, %s: %016lx, ", Registers::Name(rs_reg),
+                   rs, Registers::Name(rt_reg), rt);
       BranchHelper(rs == rt);
       break;
     case BNE:
+      printf_instr("BNE\t %s: %016lx, %s: %016lx, ", Registers::Name(rs_reg),
+                   rs, Registers::Name(rt_reg), rt);
       BranchHelper(rs != rt);
       break;
     case POP06:  // BLEZALC, BGEZALC, BGEUC, BLEZ (pre-r6)
@@ -6754,6 +6937,7 @@ void Simulator::DecodeTypeImmediate() {
           BranchHelper(rs <= 0);
         }
       } else {  // BLEZ
+        printf_instr("BLEZ\t %s: %016lx", Registers::Name(rs_reg), rs);
         BranchHelper(rs <= 0);
       }
       break;
@@ -6774,6 +6958,7 @@ void Simulator::DecodeTypeImmediate() {
           BranchHelper(rs > 0);
         }
       } else {  // BGTZ
+        printf_instr("BGTZ\t %s: %016lx", Registers::Name(rs_reg), rs);
         BranchHelper(rs > 0);
       }
       break;
@@ -6791,6 +6976,7 @@ void Simulator::DecodeTypeImmediate() {
           }
         }
       } else {  // BLEZL
+        printf_instr("BLEZL\t %s: %016lx", Registers::Name(rs_reg), rs);
         BranchAndLinkHelper(rs <= 0);
       }
       break;
@@ -6808,6 +6994,7 @@ void Simulator::DecodeTypeImmediate() {
           }
         }
       } else {  // BGTZL
+        printf_instr("BGTZL\t %s: %016lx", Registers::Name(rs_reg), rs);
         BranchAndLinkHelper(rs > 0);
       }
       break;
@@ -6846,6 +7033,9 @@ void Simulator::DecodeTypeImmediate() {
           }
         }
       } else {  // ADDI
+        printf_instr("ADDI\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                     Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                     se_imm16);
         if (HaveSameSign(rs, se_imm16)) {
           if (rs > 0) {
             if (rs <= Registers::kMaxValue - se_imm16) {
@@ -6876,27 +7066,48 @@ void Simulator::DecodeTypeImmediate() {
       break;
     // ------------- Arithmetic instructions.
     case ADDIU: {
+      printf_instr("ADDIU\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       int32_t alu32_out = static_cast<int32_t>(rs + se_imm16);
       // Sign-extend result of 32bit operation into 64bit register.
       SetResult(rt_reg, static_cast<int64_t>(alu32_out));
       break;
     }
     case DADDIU:
+      printf_instr("DADDIU\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       SetResult(rt_reg, rs + se_imm16);
       break;
     case SLTI:
+      printf_instr("SLTI\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       SetResult(rt_reg, rs < se_imm16 ? 1 : 0);
       break;
     case SLTIU:
+      printf_instr("SLTIU\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       SetResult(rt_reg, rs_u < static_cast<uint64_t>(se_imm16) ? 1 : 0);
       break;
     case ANDI:
+      printf_instr("ANDI\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   oe_imm16);
       SetResult(rt_reg, rs & oe_imm16);
       break;
     case ORI:
+      printf_instr("ORI\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   oe_imm16);
       SetResult(rt_reg, rs | oe_imm16);
       break;
     case XORI:
+      printf_instr("XORI\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   oe_imm16);
       SetResult(rt_reg, rs ^ oe_imm16);
       break;
     case LUI:
@@ -6907,6 +7118,8 @@ void Simulator::DecodeTypeImmediate() {
         SetResult(rt_reg, static_cast<int64_t>(alu32_out));
       } else {
         // LUI instruction.
+        printf_instr("LUI\t %s: %016lx, imm16: %04lx\n",
+                     Registers::Name(rt_reg), rt, se_imm16);
         int32_t alu32_out = static_cast<int32_t>(oe_imm16 << 16);
         // Sign-extend result of 32bit operation into 64bit register.
         SetResult(rt_reg, static_cast<int64_t>(alu32_out));
@@ -6919,12 +7132,21 @@ void Simulator::DecodeTypeImmediate() {
       break;
     // ------------- Memory instructions.
     case LB:
+      printf_instr("LB\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       set_register(rt_reg, ReadB(rs + se_imm16));
       break;
     case LH:
+      printf_instr("LH\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       set_register(rt_reg, ReadH(rs + se_imm16, instr_.instr()));
       break;
     case LWL: {
+      printf_instr("LWL\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       local_monitor_.NotifyLoad();
       // al_offset is offset of the effective address within an aligned word.
       uint8_t al_offset = (rs + se_imm16) & kInt32AlignmentMask;
@@ -6938,21 +7160,39 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case LW:
+      printf_instr("LW\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       set_register(rt_reg, ReadW(rs + se_imm16, instr_.instr()));
       break;
     case LWU:
+      printf_instr("LWU\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       set_register(rt_reg, ReadWU(rs + se_imm16, instr_.instr()));
       break;
     case LD:
+      printf_instr("LD\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       set_register(rt_reg, Read2W(rs + se_imm16, instr_.instr()));
       break;
     case LBU:
+      printf_instr("LBU\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       set_register(rt_reg, ReadBU(rs + se_imm16));
       break;
     case LHU:
+      printf_instr("LHU\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       set_register(rt_reg, ReadHU(rs + se_imm16, instr_.instr()));
       break;
     case LWR: {
+      printf_instr("LWR\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       // al_offset is offset of the effective address within an aligned word.
       uint8_t al_offset = (rs + se_imm16) & kInt32AlignmentMask;
       uint8_t byte_shift = kInt32AlignmentMask - al_offset;
@@ -6965,6 +7205,9 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case LDL: {
+      printf_instr("LDL\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       // al_offset is offset of the effective address within an aligned word.
       uint8_t al_offset = (rs + se_imm16) & kInt64AlignmentMask;
       uint8_t byte_shift = kInt64AlignmentMask - al_offset;
@@ -6977,6 +7220,9 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case LDR: {
+      printf_instr("LDR\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       // al_offset is offset of the effective address within an aligned word.
       uint8_t al_offset = (rs + se_imm16) & kInt64AlignmentMask;
       uint8_t byte_shift = kInt64AlignmentMask - al_offset;
@@ -6989,12 +7235,21 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case SB:
+      printf_instr("SB\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       WriteB(rs + se_imm16, static_cast<int8_t>(rt));
       break;
     case SH:
+      printf_instr("SH\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       WriteH(rs + se_imm16, static_cast<uint16_t>(rt), instr_.instr());
       break;
     case SWL: {
+      printf_instr("SWL\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       uint8_t al_offset = (rs + se_imm16) & kInt32AlignmentMask;
       uint8_t byte_shift = kInt32AlignmentMask - al_offset;
       uint32_t mask = byte_shift ? (~0 << (al_offset + 1) * 8) : 0;
@@ -7005,12 +7260,21 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case SW:
+      printf_instr("SW\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       WriteW(rs + se_imm16, static_cast<int32_t>(rt), instr_.instr());
       break;
     case SD:
+      printf_instr("SD\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       Write2W(rs + se_imm16, rt, instr_.instr());
       break;
     case SWR: {
+      printf_instr("SWR\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       uint8_t al_offset = (rs + se_imm16) & kInt32AlignmentMask;
       uint32_t mask = (1 << al_offset * 8) - 1;
       addr = rs + se_imm16 - al_offset;
@@ -7020,6 +7284,9 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case SDL: {
+      printf_instr("SDL\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       uint8_t al_offset = (rs + se_imm16) & kInt64AlignmentMask;
       uint8_t byte_shift = kInt64AlignmentMask - al_offset;
       uint64_t mask = byte_shift ? (~0UL << (al_offset + 1) * 8) : 0;
@@ -7030,6 +7297,9 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case SDR: {
+      printf_instr("SDR\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       uint8_t al_offset = (rs + se_imm16) & kInt64AlignmentMask;
       uint64_t mask = (1UL << al_offset * 8) - 1;
       addr = rs + se_imm16 - al_offset;
@@ -7055,6 +7325,9 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case LLD: {
+      printf_instr("LLD\t %s: %016lx, %s: %016lx, imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       DCHECK(kArchVariant != kMips64r6);
       base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
       addr = rs + se_imm16;
@@ -7065,6 +7338,9 @@ void Simulator::DecodeTypeImmediate() {
       break;
     }
     case SCD: {
+      printf_instr("SCD\t %s: %016lx, (%s: %016lx), imm16: %04lx\n",
+                   Registers::Name(rt_reg), rt, Registers::Name(rs_reg), rs,
+                   se_imm16);
       DCHECK(kArchVariant != kMips64r6);
       addr = rs + se_imm16;
       WriteConditional2W(addr, rt, instr_.instr(), rt_reg);
@@ -7080,11 +7356,17 @@ void Simulator::DecodeTypeImmediate() {
       TraceMemRd(addr, get_fpu_register(ft_reg), DOUBLE);
       break;
     case SWC1: {
+      printf_instr("SWC1\t %s: %016f, %s: %016lx, imm16: %04lx\n",
+                   FPURegisters::Name(ft_reg), get_fpu_register_float(ft_reg),
+                   Registers::Name(rs_reg), rs, se_imm16);
       int32_t alu_out_32 = static_cast<int32_t>(get_fpu_register(ft_reg));
       WriteW(rs + se_imm16, alu_out_32, instr_.instr());
       break;
     }
     case SDC1:
+      printf_instr("SDC1\t %s: %016f, %s: %016lx, imm16: %04lx\n",
+                   FPURegisters::Name(ft_reg), get_fpu_register_double(ft_reg),
+                   Registers::Name(rs_reg), rs, se_imm16);
       WriteD(rs + se_imm16, get_fpu_register_double(ft_reg), instr_.instr());
       TraceMemWr(rs + se_imm16, get_fpu_register(ft_reg), DWORD);
       break;
@@ -7257,6 +7539,8 @@ void Simulator::DecodeTypeJump() {
   int64_t pc_high_bits = current_pc & 0xFFFFFFFFF0000000;
   // Next pc.
   int64_t next_pc = pc_high_bits | (simInstr.Imm26Value() << 2);
+  printf_instr("%s\t", simInstr.IsLinkingInstruction() ? "JAL" : "J");
+  printf_instr("offs26: %x\n", instr_.Bits(25, 0));
 
   // Execute branch delay slot.
   // We don't check for end_sim_pc. First it should not be met as the current pc
@@ -7291,7 +7575,11 @@ void Simulator::InstructionDecode(Instruction* instr) {
     dasm.InstructionDecode(buffer, reinterpret_cast<byte*>(instr));
   }
 
+  static int instr_count = 0;
+  USE(instr_count);
   instr_ = instr;
+  printf_instr("\nInstr%3d: %08x, PC: %lx\t", instr_count++, instr_.Bits(31, 0),
+               get_pc());
   switch (instr_.InstructionType()) {
     case Instruction::kRegisterType:
       DecodeTypeRegister();

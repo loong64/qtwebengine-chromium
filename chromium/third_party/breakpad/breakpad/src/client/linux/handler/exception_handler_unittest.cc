@@ -59,6 +59,7 @@ namespace {
 
 // Flush the instruction cache for a given memory range.
 // Only required on ARM and mips.
+// TODO:LOONG64 Does loongarch need flush icache?
 void FlushInstructionCache(const char* memory, uint32_t memory_size) {
 #if defined(__arm__)
   long begin = reinterpret_cast<long>(memory);

@@ -187,7 +187,7 @@ if (use_allocator == "tcmalloc") {
     ]
 
     # Not included on mips64el.
-    if (current_cpu == "mips64el") {
+    if (current_cpu == "mips64el" || current_cpu == "loong64") {
       sources -= [
         "$tcmalloc_dir/src/base/linuxthreads.cc",
         "$tcmalloc_dir/src/base/linuxthreads.h",

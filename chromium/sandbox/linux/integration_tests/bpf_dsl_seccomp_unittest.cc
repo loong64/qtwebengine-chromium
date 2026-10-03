@@ -1917,7 +1917,7 @@ BPF_TEST_C(SandboxBPF, PthreadBitMask, PthreadPolicyBitMask) {
 //
 // Depending on the architecture, this may modify regs, so the caller is
 // responsible for committing these changes using PTRACE_SETREGS.
-#if !defined(__arm__) && !defined(__aarch64__) && !defined(__mips__)
+#if !defined(__arm__) && !defined(__aarch64__) && !defined(__mips__) && !defined(__loongarch64)
 long SetSyscall(pid_t pid, regs_struct* regs, int syscall_number) {
 #if defined(__arm__)
   // On ARM, the syscall is changed using PTRACE_SET_SYSCALL.  We cannot use the
@@ -1956,10 +1956,11 @@ SANDBOX_TEST(SandboxBPF, DISABLE_ON_TSAN(SeccompRetTrace)) {
 // See https://code.google.com/p/chromium/issues/detail?id=383977
 #if defined(__arm__) || defined(__aarch64__)
   printf("This test is currently disabled on ARM32/64 due to a kernel bug.");
-#elif defined(__mips__)
+// TODO:LOONG64 Support specificity of handlingindirect syscalls
+#elif defined(__mips__) || defined(__loongarch64)
   // TODO: Figure out how to support specificity of handling indirect syscalls
   //        in this test and enable it.
-  printf("This test is currently disabled on MIPS.");
+  printf("This test is currently disabled on MIPS and loongarch64.");
 #else
   pid_t pid = fork();
   BPF_ASSERT_NE(-1, pid);

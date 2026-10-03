@@ -41,7 +41,6 @@ ExceptionSnapshotLinux::ExceptionSnapshotLinux()
 ExceptionSnapshotLinux::~ExceptionSnapshotLinux() {}
 
 #if defined(ARCH_CPU_X86_FAMILY)
-
 template <>
 bool ExceptionSnapshotLinux::ReadContext<ContextTraits32>(
     ProcessReaderLinux* reader,
@@ -269,7 +268,7 @@ bool ExceptionSnapshotLinux::ReadContext<ContextTraits64>(
 }
 
 #elif defined(ARCH_CPU_MIPS_FAMILY)
-
+//TODO
 template <typename Traits>
 static bool ReadContext(ProcessReaderLinux* reader,
                         LinuxVMAddress context_address,
@@ -323,6 +322,59 @@ bool ExceptionSnapshotLinux::ReadContext<ContextTraits64>(
       reader, context_address, context_.mips64);
 }
 
+#elif defined(ARCH_CPU_LOONGARCH_FAMILY)
+template <typename Traits>
+static bool ReadContext(ProcessReaderLinux* reader,
+                        LinuxVMAddress context_address,
+                        typename Traits::CPUContext* dest_context) {
+  //const ProcessMemory* memory = reader->Memory();
+
+  //LinuxVMAddress gregs_address = context_address +
+  //                               offsetof(UContext<Traits>, mcontext) +
+  //                               offsetof(typename Traits::MContext, gregs);
+
+  //typename Traits::SignalThreadContext thread_context;
+  //if (!memory->Read(gregs_address, sizeof(thread_context), &thread_context)) {
+  //  LOG(ERROR) << "Couldn't read gregs";
+  //  return false;
+  //}
+
+  //LinuxVMAddress fpregs_address = context_address +
+  //                                offsetof(UContext<Traits>, mcontext) +
+  //                                offsetof(typename Traits::MContext, fpregs);
+
+  //typename Traits::SignalFloatContext fp_context;
+  //if (!memory->Read(fpregs_address, sizeof(fp_context), &fp_context)) {
+  //  LOG(ERROR) << "Couldn't read fpregs";
+  //  return false;
+  //}
+
+  //InitializeCPUContextLOONG64<Traits>(thread_context, fp_context, dest_context);
+
+  return true;
+}
+
+template <>
+bool ExceptionSnapshotLinux::ReadContext<ContextTraits32>(
+    ProcessReaderLinux* reader,
+    LinuxVMAddress context_address) {
+  context_.architecture = kCPUArchitectureLOONG64;
+  context_.loong64 = &context_union_.loong64;
+
+  return internal::ReadContext<ContextTraits32>(
+      reader, context_address, context_.loong64);
+}
+
+template <>
+bool ExceptionSnapshotLinux::ReadContext<ContextTraits64>(
+    ProcessReaderLinux* reader,
+    LinuxVMAddress context_address) {
+  context_.architecture = kCPUArchitectureLOONG64;
+  context_.loong64 = &context_union_.loong64;
+
+  return internal::ReadContext<ContextTraits64>(
+      reader, context_address, context_.loong64);
+}
 #endif  // ARCH_CPU_X86_FAMILY
 
 bool ExceptionSnapshotLinux::Initialize(ProcessReaderLinux* process_reader,

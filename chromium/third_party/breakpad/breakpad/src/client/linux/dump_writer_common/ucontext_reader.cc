@@ -208,6 +208,30 @@ void UContextReader::FillCPUContext(RawContextCPU* out, const ucontext_t* uc,
       MD_FLOATINGSAVEAREA_ARM64_FPR_COUNT * 16);
 }
 
+#elif defined(__loongarch__)
+uintptr_t UContextReader::GetStackPointer(const ucontext_t* uc) {
+  return uc->uc_mcontext.__gregs[MD_CONTEXT_LOONG64_REG_SP];
+}
+
+uintptr_t UContextReader::GetInstructionPointer(const ucontext_t* uc) {
+  return uc->uc_mcontext.__pc;
+}
+
+void UContextReader::FillCPUContext(RawContextCPU* out, const ucontext_t* uc) {
+  out->context_flags = MD_CONTEXT_LOONG64_FULL;
+
+  for (int i = 0; i < MD_CONTEXT_LOONG64_GPR_COUNT; ++i)
+    out->iregs[i] = uc->uc_mcontext.__gregs[i];
+
+  // TODO:LOONG64 Support vector FPU
+  for (int i = 0; i < MD_FLOATINGSAVEAREA_LOONG64_FPR_COUNT; ++i)
+    out->float_save.regs[i] = uc->uc_mcontext.__fpregs[i].__val64[0];
+
+  out->float_save.fcsr = uc->uc_mcontext.__fcsr;
+  out->float_save.vcsr = uc->uc_mcontext.__vcsr;
+  out->float_save.fcc = uc->uc_mcontext.__fcc;
+}
+
 #elif defined(__mips__)
 
 uintptr_t UContextReader::GetStackPointer(const ucontext_t* uc) {

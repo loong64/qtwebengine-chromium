@@ -258,7 +258,8 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
   int pc_offset() const { return static_cast<int>(pc_ - buffer_start_); }
 
   int pc_offset_for_safepoint() {
-#if defined(V8_TARGET_ARCH_MIPS) || defined(V8_TARGET_ARCH_MIPS64)
+#if defined(V8_TARGET_ARCH_MIPS) || defined(V8_TARGET_ARCH_MIPS64) || \
+    defined(V8_TARGET_ARCH_LOONG64)
     // Mips needs it's own implementation to avoid trampoline's influence.
     UNREACHABLE();
 #else

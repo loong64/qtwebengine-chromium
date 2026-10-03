@@ -273,7 +273,7 @@ bool GetThreadArea64(pid_t tid,
   }
   return true;
 }
-#elif defined(ARCH_CPU_MIPS_FAMILY)
+#elif defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_LOONGARCH_FAMILY)
 // PTRACE_GETREGSET, introduced in Linux 2.6.34 (2225a122ae26), requires kernel
 // support enabled by HAVE_ARCH_TRACEHOOK. This has been set for x86 (including
 // x86_64) since Linux 2.6.28 (99bbc4b1e677a), but for MIPS only since
@@ -296,7 +296,7 @@ bool GetGeneralPurposeRegistersLegacy(pid_t tid,
 // ptrace unsupported on MIPS for kernels older than 3.13
 #if defined(ARCH_CPU_MIPSEL)
 #define THREAD_CONTEXT_FIELD t32
-#elif defined(ARCH_CPU_MIPS64EL)
+#elif defined(ARCH_CPU_MIPS64EL) || defined(ARCH_CPU_LOONGARCH_FAMILY)
 #define THREAD_CONTEXT_FIELD t64
 #endif
   for (size_t reg = 0; reg < 32; ++reg) {
@@ -385,6 +385,7 @@ bool GetThreadArea64(pid_t tid,
                      const ThreadContext& context,
                      LinuxVMAddress* address,
                      bool can_log) {
+/*
   void* result;
 #if defined(ARCH_CPU_MIPSEL)
   if (ptrace(PTRACE_GET_THREAD_AREA_3264, tid, nullptr, &result) != 0) {
@@ -395,6 +396,7 @@ bool GetThreadArea64(pid_t tid,
     return false;
   }
   *address = FromPointerCast<LinuxVMAddress>(result);
+*/
   return true;
 }
 

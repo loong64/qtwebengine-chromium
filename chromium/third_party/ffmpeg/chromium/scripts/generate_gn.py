@@ -77,7 +77,7 @@ GN_SOURCE_END = """]
 Attr = enum('ARCHITECTURE', 'TARGET', 'PLATFORM')
 SUPPORT_MATRIX = {
     Attr.ARCHITECTURE:
-        set(['ia32', 'x64', 'arm', 'arm64', 'arm-neon', 'mipsel', 'mips64el']),
+        set(['ia32', 'x64', 'arm', 'arm64', 'arm-neon', 'mipsel', 'mips64el', 'loong64']),
     Attr.TARGET:
         set(['Chromium', 'Chrome', 'ChromeOS']),
     Attr.PLATFORM:

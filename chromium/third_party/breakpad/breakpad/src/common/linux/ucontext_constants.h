@@ -116,6 +116,14 @@
 #define  UCONTEXT_SIGMASK_OFFSET   640
 #endif
 
+#elif defined(__loongarch__)
+// TODO:LOONG64 Check the offset value
+#define  MCONTEXT_GREGS_OFFSET     40
+#define  MCONTEXT_FPREGS_OFFSET    296
+#define  MCONTEXT_PC_OFFSET        616
+#define  MCONTEXT_FPC_CSR          624
+#define  UCONTEXT_SIGMASK_OFFSET   640
+
 #elif defined(__x86_64__)
 
 #define MCONTEXT_GREGS_OFFSET     40

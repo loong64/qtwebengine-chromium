@@ -139,7 +139,16 @@ void InitializeCPUContextARM64_OnlyFPSIMD(
 #endif  // ARCH_CPU_ARM_FAMILY || DOXYGEN
 
 #if defined(ARCH_CPU_MIPS_FAMILY) || DOXYGEN
-
+/*
+using ::std::ios_base;
+using ::std::locale;
+using ::std::__c_locale;
+using ::std::wstring;
+using ::std::base_string;
+using messages_base::catalog;
+*/
+#include <wchar.h>
+#include <string.h>
 //! \brief Initializes a CPUContextMIPS structure from native context
 //!     structures on Linux.
 //!
@@ -171,7 +180,23 @@ void InitializeCPUContextMIPS(
   context->fpcsr = float_context.fpcsr;
   context->fir = float_context.fpu_id;
 }
-
+#elif defined(ARCH_CPU_LOONGARCH_FAMILY)
+//! \brief Initializes a CPUContextMIPS structure from native context
+//!     structures on Linux.
+//!
+//! This function has template specializations for MIPSEL and MIPS64EL
+//! architecture contexts, using ContextTraits32 or ContextTraits64 as template
+//! parameter, respectively.
+//!
+//! \param[in] thread_context The native thread context.
+//! \param[in] float_context The native float context.
+//! \param[out] context The CPUContextMIPS structure to initialize.
+template <typename Traits>
+void InitializeCPUContextLOONG64(
+    const typename Traits::SignalThreadContext& thread_context,
+    const typename Traits::SignalFloatContext& float_context,
+    typename Traits::CPUContext* context) {
+}
 #endif  // ARCH_CPU_MIPS_FAMILY || DOXYGEN
 
 }  // namespace internal

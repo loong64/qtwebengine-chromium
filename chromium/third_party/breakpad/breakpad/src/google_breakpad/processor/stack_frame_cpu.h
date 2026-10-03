@@ -400,6 +400,8 @@ struct StackFrameMIPS : public StackFrame {
   int context_validity;
 };
 
+// TODO:LOONG64 Add StackFrameLOONG64
+
 }  // namespace google_breakpad
 
 #endif  // GOOGLE_BREAKPAD_PROCESSOR_STACK_FRAME_CPU_H__

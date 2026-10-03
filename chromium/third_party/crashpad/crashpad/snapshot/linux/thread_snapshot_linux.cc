@@ -186,6 +186,8 @@ bool ThreadSnapshotLinux::Initialize(ProcessReaderLinux* process_reader,
         thread.thread_info.float_context.f32,
         context_.mipsel);
   }
+#elif defined(ARCH_CPU_LOONGARCH_FAMILY)
+  //TODO
 #else
 #error Port.
 #endif

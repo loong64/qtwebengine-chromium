@@ -13,7 +13,7 @@
 // (not undefined, but defined different values and in different memory
 // layouts). So, fill the gap here.
 #if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || \
-    defined(__aarch64__)
+    defined(__aarch64__) || defined(__loongarch__)
 
 #define LINUX_SIGHUP 1
 #define LINUX_SIGINT 2
@@ -120,7 +120,8 @@ typedef siginfo_t LinuxSigInfo;
 struct LinuxSigSet {
   unsigned long sig[_NSIG_WORDS];
 };
-#elif defined(ARCH_CPU_MIPS_FAMILY) && defined(ARCH_CPU_64_BITS)
+// TODO:LOONG64 Check this _NSIG_WORDS and LinuxSigAction
+#elif defined(ARCH_CPU_MIPS_FAMILY) && defined(ARCH_CPU_64_BITS) || defined(ARCH_CPU_LOONGARCH_FAMILY)
 #if !defined(_NSIG_WORDS)
 #define _NSIG_WORDS 2
 #endif

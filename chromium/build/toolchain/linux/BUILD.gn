@@ -152,6 +152,14 @@ clang_toolchain("clang_x64_v8_mips64") {
   }
 }
 
+clang_toolchain("clang_x64_v8_loong64") {
+  toolchain_args = {
+    current_cpu = "x64"
+    v8_current_cpu = "loong64"
+    current_os = "linux"
+  }
+}
+
 gcc_toolchain("x64") {
   cc = "gcc"
   cxx = "g++"
@@ -181,6 +189,13 @@ clang_toolchain("clang_mipsel") {
 clang_toolchain("clang_mips64el") {
   toolchain_args = {
     current_cpu = "mips64el"
+    current_os = "linux"
+  }
+}
+
+clang_toolchain("clang_loong64") {
+  toolchain_args = {
+    current_cpu = "loong64"
     current_os = "linux"
   }
 }
@@ -217,6 +232,25 @@ gcc_toolchain("mips64el") {
   toolchain_args = {
     cc_wrapper = ""
     current_cpu = "mips64el"
+    current_os = "linux"
+    is_clang = false
+    use_goma = false
+  }
+}
+
+gcc_toolchain("loong64") {
+  toolprefix = "loongarch64-linux-gnu-"
+
+  cc = "${toolprefix}gcc"
+  cxx = "${toolprefix}g++"
+  ar = "${toolprefix}ar"
+  ld = cxx
+  readelf = "${toolprefix}readelf"
+  nm = "${toolprefix}nm"
+
+  toolchain_args = {
+    cc_wrapper = ""
+    current_cpu = "loong64"
     current_os = "linux"
     is_clang = false
     use_goma = false

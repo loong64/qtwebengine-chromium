@@ -422,6 +422,98 @@ static_assert(offsetof(UContext<ContextTraits64>, mcontext.fpregs) ==
               "context offset mismatch");
 #endif
 
+#elif defined(ARCH_CPU_LOONGARCH_FAMILY)
+//TODO
+struct MContext32 {
+  uint32_t regmask;
+  uint32_t status;
+  uint64_t pc;
+  uint64_t gregs[32];
+  struct {
+    float _fp_fregs;
+    unsigned int _fp_pad;
+  } fpregs[32];
+  uint32_t fp_owned;
+  uint32_t fpc_csr;
+  uint32_t fpc_eir;
+  uint32_t used_math;
+  uint32_t dsp;
+  uint64_t mdhi;
+  uint64_t mdlo;
+  uint32_t hi1;
+  uint32_t lo1;
+  uint32_t hi2;
+  uint32_t lo2;
+  uint32_t hi3;
+  uint32_t lo3;
+};
+
+struct MContext64 {
+  uint64_t gregs[32];
+  double fpregs[32];
+  uint64_t mdhi;
+  uint64_t hi1;
+  uint64_t hi2;
+  uint64_t hi3;
+  uint64_t mdlo;
+  uint64_t lo1;
+  uint64_t lo2;
+  uint64_t lo3;
+  uint64_t pc;
+  uint32_t fpc_csr;
+  uint32_t used_math;
+  uint32_t dsp;
+  uint32_t __glibc_reserved1;
+};
+
+struct SignalThreadContext32 {
+  uint64_t regs[32];
+  uint32_t lo;
+  uint32_t hi;
+  uint32_t cp0_epc;
+  uint32_t cp0_badvaddr;
+  uint32_t cp0_status;
+  uint32_t cp0_cause;
+
+  SignalThreadContext32() {}
+  explicit SignalThreadContext32(
+      const struct ThreadContext::t32_t& thread_context) {
+    for (size_t reg = 0; reg < 32; ++reg) {
+      regs[reg] = thread_context.regs[reg];
+    }
+    lo = thread_context.lo;
+    hi = thread_context.hi;
+    cp0_epc = thread_context.cp0_epc;
+    cp0_badvaddr = thread_context.cp0_badvaddr;
+    cp0_status = thread_context.cp0_status;
+    cp0_cause = thread_context.cp0_cause;
+  }
+};
+
+struct ContextTraits32 : public Traits32 {
+  using MContext = MContext32;
+  using SignalThreadContext = SignalThreadContext32;
+  using SignalFloatContext = FloatContext::f32_t;
+  using CPUContext = CPUContextLOONG64;
+};
+
+struct ContextTraits64 : public Traits64 {
+  using MContext = MContext64;
+  using SignalThreadContext = ThreadContext::t64_t;
+  using SignalFloatContext = FloatContext::f64_t;
+  using CPUContext = CPUContextLOONG64;
+};
+
+template <typename Traits>
+struct UContext {
+  typename Traits::ULong flags;
+  typename Traits::Address link;
+  SignalStack<Traits> stack;
+  typename Traits::ULong_32Only alignment_padding_;
+  typename Traits::MContext mcontext;
+  Sigset<Traits> sigmask;
+};
+
 #else
 #error Port.
 #endif  // ARCH_CPU_X86_FAMILY

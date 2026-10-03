@@ -33,5 +33,10 @@
         "Sha1Sum": "0edb979c932d207076c3986403a198387a4a8aa9",
         "SysrootDir": "debian_sid_mips64el-sysroot",
         "Tarball": "debian_sid_mips64el_sysroot.tar.xz"
+    },
+    "sid_loong64": {
+        "Sha1Sum": "041904e09409badd6a103f01069b8a5ee7172968",
+        "SysrootDir": "debian_sid_mips64el-sysroot",
+        "Tarball": "debian_sid_mips64el_sysroot.tar.xz"
     }
 }

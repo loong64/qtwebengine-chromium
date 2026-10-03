@@ -37,7 +37,7 @@ ARCH_MAP = {
     'android': ['ia32', 'x64', 'arm-neon', 'arm64'],
     'linux': [
         'ia32', 'x64', 'mipsel', 'mips64el', 'noasm-x64', 'arm', 'arm-neon',
-        'arm64'
+        'arm64', 'loong64'
     ],
     'mac': ['x64', 'arm64'],
     'win': ['ia32', 'x64', 'arm64'],
@@ -137,6 +137,8 @@ def DetermineHostOsAndArch():
     host_arch = 'mipsel'
   elif platform.machine() == 'mips64':
     host_arch = 'mips64el'
+  elif platform.machine() == 'loongarch64':
+    host_arch = 'loong64'
   elif platform.machine().startswith('arm'):
     host_arch = 'arm'
   else:
@@ -212,6 +214,10 @@ def SetupAndroidToolchain(target_arch):
     toolchain_level = api64_level
     sysroot_arch = 'mips64'
     toolchain_bin_prefix = toolchain_dir_prefix = 'mips64el-linux-android'
+  elif target_arch == 'loong64':
+    toolchain_level = api64_level
+    sysroot_arch = 'loong64'
+    toolchain_bin_prefix = toolchain_dir_prefix = 'loong64-linux-android'
 
   sysroot = (
       NDK_ROOT_DIR + '/platforms/android-' + toolchain_level + '/arch-' +
@@ -820,6 +826,21 @@ def ConfigureAndBuild(target_arch, target_os, host_os, host_arch, parallel_jobs,
             '--extra-cflags=--target=mips64el-linux-gnuabi64',
             '--extra-ldflags=--target=mips64el-linux-gnuabi64',
         ])
+    elif target_arch == 'loong64':
+      # These flags taken from android chrome build with target_cpu='mips64el'
+      configure_flags['Common'].extend([
+      ])
+      if target_os == 'android':
+        configure_flags['Common'].extend([
+            '--enable-mips64r6',
+            '--extra-cflags=-mcpu=mips64r6',
+            '--disable-mips64r2',
+            '--enable-msa',
+        ])
+      if target_os == 'linux':
+        configure_flags['Common'].extend([
+            '--target-os=linux',
+        ])
     else:
       print(
           'Error: Unknown target arch %r for target OS %r!' % (target_arch,
@@ -845,8 +866,8 @@ def ConfigureAndBuild(target_arch, target_os, host_os, host_arch, parallel_jobs,
     # typically be the system one, so explicitly configure use of Clang's
     # ld.lld, to ensure that things like cross-compilation and LTO work.
     # This does not work for ia32 and is always used on mac.
-    if target_arch != 'ia32' and target_os != 'mac':
-      configure_flags['Common'].append('--extra-ldflags=-fuse-ld=lld')
+    #if target_arch != 'ia32' and target_os != 'mac':
+    #  configure_flags['Common'].append('--extra-ldflags=-fuse-ld=lld')
 
   # Should be run on Mac, unless we're cross-compiling on Linux.
   if target_os == 'mac':

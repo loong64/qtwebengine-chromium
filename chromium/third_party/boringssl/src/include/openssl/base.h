@@ -105,6 +105,9 @@ extern "C" {
 #elif defined(__mips__) && defined(__LP64__)
 #define OPENSSL_64_BIT
 #define OPENSSL_MIPS64
+#elif defined(__loongarch__)
+#define OPENSSL_64_BIT
+#define OPENSSL_LOONG64
 #elif defined(__pnacl__)
 #define OPENSSL_32_BIT
 #define OPENSSL_PNACL
